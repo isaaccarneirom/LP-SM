@@ -87,7 +87,8 @@ export const EventQuoteForm = () => {
       return;
     }
     const otherEvent = data.get('tipoOutro');
-    const webhookUrl = import.meta.env.VITE_GOOGLE_SHEETS_WEBHOOK_URL;
+    const webhookUrl = import.meta.env.VITE_GOOGLE_SHEETS_WEBHOOK_URL
+      || 'https://script.google.com/macros/s/AKfycbwTSwFoocfyFedK1eglKhWVjxzUS9KW21_fwPXo6rmhNi5cfuejTI5OlNwiuETJ4xRA/exec';
     const payload = {
       nome: data.get('nome'),
       whatsapp: data.get('whatsapp'),
