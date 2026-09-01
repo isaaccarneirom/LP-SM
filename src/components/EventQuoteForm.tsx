@@ -75,8 +75,10 @@ function Field({ number, title, helper, children }: { number: string; title: str
 
 export const EventQuoteForm = () => {
   const [sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const servicesSelected = data.getAll('servicos').join(', ');
@@ -85,6 +87,21 @@ export const EventQuoteForm = () => {
       return;
     }
     const otherEvent = data.get('tipoOutro');
+    const webhookUrl = import.meta.env.VITE_GOOGLE_SHEETS_WEBHOOK_URL;
+    const payload = {
+      nome: data.get('nome'),
+      whatsapp: data.get('whatsapp'),
+      data: data.get('data'),
+      local: data.get('local'),
+      horario: data.get('horario'),
+      tipoEvento: data.get('tipoEvento') === 'Outro' ? `Outro — ${otherEvent}` : data.get('tipoEvento'),
+      servicos: servicesSelected,
+      arquivos: data.get('arquivos'),
+      fotografo: data.get('fotografo'),
+      fotografia: data.get('fotografia'),
+      orcamento: data.get('orcamento'),
+      detalhes: data.get('detalhes') || 'Não informado',
+    };
     const lines = [
       '*NOVO PEDIDO DE ORÇAMENTO — EVENTO*',
       '',
@@ -93,17 +110,37 @@ export const EventQuoteForm = () => {
       `*Data:* ${data.get('data')}`,
       `*Local:* ${data.get('local')}`,
       `*Horário:* ${data.get('horario')}`,
-      `*Tipo de evento:* ${data.get('tipoEvento') === 'Outro' ? `Outro — ${otherEvent}` : data.get('tipoEvento')}`,
-      `*Serviço:* ${servicesSelected}`,
-      `*Arquivos:* ${data.get('arquivos')}`,
-      `*Fotógrafo no evento:* ${data.get('fotografo')}`,
-      `*Interesse em fotografia:* ${data.get('fotografia')}`,
-      `*Investimento:* ${data.get('orcamento')}`,
-      `*Detalhes:* ${data.get('detalhes') || 'Não informado'}`,
+      `*Tipo de evento:* ${payload.tipoEvento}`,
+      `*Serviço:* ${payload.servicos}`,
+      `*Arquivos:* ${payload.arquivos}`,
+      `*Fotógrafo no evento:* ${payload.fotografo}`,
+      `*Interesse em fotografia:* ${payload.fotografia}`,
+      `*Investimento:* ${payload.orcamento}`,
+      `*Detalhes:* ${payload.detalhes}`,
     ];
 
-    window.open(`https://wa.me/5511958247301?text=${encodeURIComponent(lines.join('\n'))}`, '_blank', 'noopener,noreferrer');
-    setSent(true);
+    if (!webhookUrl) {
+      setSubmitError('A integração com a planilha ainda não foi ativada. Tente novamente em instantes.');
+      return;
+    }
+
+    setSubmitting(true);
+    setSubmitError('');
+
+    try {
+      await fetch(webhookUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload),
+      });
+      window.open(`https://wa.me/5511958247301?text=${encodeURIComponent(lines.join('\n'))}`, '_blank', 'noopener,noreferrer');
+      setSent(true);
+    } catch {
+      setSubmitError('Não foi possível salvar suas informações. Verifique sua conexão e tente novamente.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (sent) {
@@ -168,10 +205,11 @@ export const EventQuoteForm = () => {
 
           <div className="flex flex-col items-start justify-between gap-6 border-t border-black/10 pt-8 md:flex-row md:items-center">
             <p className="max-w-md text-xs leading-5 text-black/40">Ao enviar, suas respostas serão organizadas em uma mensagem para a nossa equipe no WhatsApp.</p>
-            <button type="submit" className="group flex w-full items-center justify-center gap-3 rounded-full bg-black px-7 py-4 text-xs font-bold uppercase tracking-[0.16em] text-white transition hover:bg-yellow-400 hover:text-black md:w-auto">
-              Solicitar orçamento <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+            <button type="submit" disabled={submitting} className="group flex w-full items-center justify-center gap-3 rounded-full bg-black px-7 py-4 text-xs font-bold uppercase tracking-[0.16em] text-white transition hover:bg-yellow-400 hover:text-black disabled:cursor-wait disabled:opacity-60 md:w-auto">
+              {submitting ? 'Salvando...' : 'Solicitar orçamento'} <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
             </button>
           </div>
+          {submitError && <p role="alert" className="mt-4 text-sm font-medium text-red-600">{submitError}</p>}
         </form>
       </div>
     </section>
