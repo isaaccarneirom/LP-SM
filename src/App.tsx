@@ -5,6 +5,7 @@ import { LogoStrip } from './components/LogoStrip';
 import { About } from './components/About';
 import { Services } from './components/Services';
 import { Possibilities } from './components/Possibilities';
+import { EventQuoteForm } from './components/EventQuoteForm';
 import { Footer } from './components/Footer';
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
         <About />
         <Services />
         <Possibilities />
+        <EventQuoteForm />
       </main>
       <Footer />
     </div>
