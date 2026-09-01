@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/orcamento",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/orcamento/",
+      "destination": "/index.html"
+    }
+  ]
+}
